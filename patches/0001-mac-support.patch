@@ -1,3 +1,101 @@
+diff --git a/SimPE.Helper/GameRootAutoScanner.cs b/SimPE.Helper/GameRootAutoScanner.cs
+index 474bfab..d9e776f 100644
+--- a/SimPE.Helper/GameRootAutoScanner.cs
++++ b/SimPE.Helper/GameRootAutoScanner.cs
+@@ -203,11 +203,12 @@ namespace SimPe
+ 
+                 // If this folder contains TSData, it's a pack root.
+                 string tsDataPath = Path.Combine(currentDir, "TSData");
+-                if (Directory.Exists(tsDataPath))
++                bool foundTsDataHere = Directory.Exists(tsDataPath);
++                if (foundTsDataHere)
+                 {
+                     if (!seenPackPaths.Contains(currentDir))
+                     {
+-                        string name = Path.GetFileName(currentDir) ?? currentDir;
++                        string name = GetFriendlyPackName(currentDir);
+ 
+                         // Treat both "Base" (Legacy-style) and "The Sims 2" (disc-style) as base game
+                         bool isBaseChild =
+@@ -225,12 +226,15 @@ namespace SimPe
+ 
+                         seenPackPaths.Add(currentDir);
+                     }
+-
+-                    // IMPORTANT: Don’t descend further once TSData is found here.
+-                    continue;
+                 }
+ 
+-                // Otherwise, enqueue child dirs
++                // Always descend into child dirs (skipping the TSData folder itself).
++                // Aspyr's macOS Sims 2 layout is:
++                //   Contents/Assets/                              <- root, has base TSData
++                //     Expansion Packs.localized/
++                //       Pets.localized/Pets.app/Contents/Assets/  <- contains EP TSData
++                // so even after finding the base TSData at the root, we must keep
++                // walking siblings of TSData to discover the EPs nested below.
+                 string[] subDirs;
+                 try
+                 {
+@@ -245,6 +249,10 @@ namespace SimPe
+                 {
+                     string subName = Path.GetFileName(sub) ?? sub;
+ 
++                    // Don't waste time descending into a TSData we already counted.
++                    if (string.Equals(subName, "TSData", StringComparison.OrdinalIgnoreCase))
++                        continue;
++
+                     // Ignore EA patch / temp folders like TH14FF~1, THE3E9~1, etc.
+                     if (subName.StartsWith("TH", StringComparison.OrdinalIgnoreCase) && subName.Contains("~"))
+                         continue;
+@@ -258,6 +266,47 @@ namespace SimPe
+                 rootFolder: root,
+                 packs: new ReadOnlyCollection<PackFolderInfo>(packs));
+         }
++
++        /// <summary>
++        /// Returns a sensible display name for a pack at the given path.
++        /// Aspyr's macOS Sims 2 install names each EP folder with a ".localized"
++        /// or ".app" suffix (e.g. "Pets.localized" or "Pets.app"); strip the
++        /// suffix so the name matches PackPathResolver's dictionary entries
++        /// ("Pets", "University", "Bon Voyage", "Family Fun Stuff", ...).
++        /// For non-Mac layouts we fall back to the leaf folder name as-is.
++        /// </summary>
++        private static string GetFriendlyPackName(string packPath)
++        {
++            string leaf = Path.GetFileName(packPath) ?? packPath;
++
++            // Aspyr's classic layout: TSData lives directly inside e.g.
++            // "Pets.localized" or "Family Fun Stuff.localized".
++            if (leaf.EndsWith(".localized", StringComparison.OrdinalIgnoreCase))
++                return leaf.Substring(0, leaf.Length - ".localized".Length);
++            if (leaf.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
++                return leaf.Substring(0, leaf.Length - ".app".Length);
++
++            // Aspyr alt layout where TSData is one level deeper at .../<X>.app/Contents/Assets:
++            // walk up looking for a .localized or .app ancestor.
++            if (string.Equals(leaf, "Assets", StringComparison.OrdinalIgnoreCase))
++            {
++                string current = packPath;
++                for (int i = 0; i < 4; i++)
++                {
++                    string parent;
++                    try { parent = Path.GetDirectoryName(current); } catch { parent = null; }
++                    if (string.IsNullOrEmpty(parent)) break;
++                    string name = Path.GetFileName(parent) ?? "";
++                    if (name.EndsWith(".localized", StringComparison.OrdinalIgnoreCase))
++                        return name.Substring(0, name.Length - ".localized".Length);
++                    if (name.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
++                        return name.Substring(0, name.Length - ".app".Length);
++                    current = parent;
++                }
++            }
++
++            return leaf;
++        }
+     }
+ }
+ 
 diff --git a/SimPE.Helper/Helper.cs b/SimPE.Helper/Helper.cs
 index 001f0da..8d45bc3 100644
 --- a/SimPE.Helper/Helper.cs
@@ -95,7 +193,7 @@ index 6e43d03..64165ae 100644
              this.rbMac.CheckedChanged += new System.EventHandler(this.EditionRadio_CheckedChanged);
              // 
 diff --git a/SimPE.Main/GameRootDialog.cs b/SimPE.Main/GameRootDialog.cs
-index 1b8f017..ec1b9c8 100644
+index 1b8f017..8eb41d9 100644
 --- a/SimPE.Main/GameRootDialog.cs
 +++ b/SimPE.Main/GameRootDialog.cs
 @@ -61,12 +61,13 @@ namespace SimPe
@@ -192,10 +290,10 @@ index 1b8f017..ec1b9c8 100644
 +
 +            if (edition == "Mac")
 +            {
-+                string appResources = Path.Combine(rootPath, "Contents", "Resources");
-+                if (Directory.Exists(Path.Combine(appResources, "TSData")))
++                string appAssets = Path.Combine(rootPath, "Contents", "Assets");
++                if (Directory.Exists(Path.Combine(appAssets, "TSData")))
 +                {
-+                    return appResources;
++                    return appAssets;
 +                }
 +
 +                if (Directory.Exists(Path.Combine(rootPath, "TSData")))
@@ -260,7 +358,7 @@ index 1b8f017..ec1b9c8 100644
 -            // }
 +            else if (rbMac.Checked)
 +            {
-+                string macRoot = "/Applications/The Sims 2.app/Contents/Resources";
++                string macRoot = "/Applications/The Sims 2.app/Contents/Assets";
 +                if (Directory.Exists(macRoot))
 +                {
 +                    suggested = macRoot;
@@ -274,21 +372,28 @@ index 1b8f017..ec1b9c8 100644
  
              if (suggested != null)
              {
-@@ -551,6 +592,33 @@ namespace SimPe
+@@ -551,6 +592,50 @@ namespace SimPe
                  // Custom: leave blank so user must choose if needed
                  suggested = string.Empty;
              }
 +            else if (rbMac.Checked)
 +            {
-+                string home = Environment.GetEnvironmentVariable("HOME");
-+                if (string.IsNullOrEmpty(home))
-+                {
-+                    home = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-+                }
++                // Aspyr's Sims 2 Downloads folder lives at:
++                //   ~/Library/Containers/com.aspyr.sims2.appstore/Data/Library/Application Support/Aspyr/The Sims 2/Downloads
++                // Under Wine on macOS, HOME isn't exported and SpecialFolder.Personal
++                // returns C:\users\<wineuser>\Documents, so we have to construct the
++                // Z:-prefixed (macOS root via Wine's Z: drive) path ourselves using
++                // the actual macOS username, which Wine surfaces as Environment.UserName.
++                string user = Environment.UserName;
++                string winePath = string.IsNullOrEmpty(user) ? null :
++                    @"Z:\Users\" + user + @"\Library\Containers\com.aspyr.sims2.appstore\Data\Library\Application Support\Aspyr\The Sims 2\Downloads";
 +
++                // Native-macOS fallback in case anyone ever runs this without Wine.
++                string nativePath = null;
++                string home = Environment.GetEnvironmentVariable("HOME");
 +                if (!string.IsNullOrEmpty(home))
 +                {
-+                    suggested = Path.Combine(
++                    nativePath = Path.Combine(
 +                        home,
 +                        "Library",
 +                        "Containers",
@@ -300,9 +405,19 @@ index 1b8f017..ec1b9c8 100644
 +                        "The Sims 2",
 +                        "Downloads");
 +                }
-+                else
++
++                suggested = null;
++                foreach (string candidate in new[] { winePath, nativePath })
 +                {
-+                    suggested = string.Empty;
++                    if (!string.IsNullOrEmpty(candidate) && Directory.Exists(candidate))
++                    {
++                        suggested = candidate;
++                        break;
++                    }
++                }
++                if (string.IsNullOrEmpty(suggested))
++                {
++                    suggested = winePath ?? nativePath ?? string.Empty;
 +                }
 +            }
  
