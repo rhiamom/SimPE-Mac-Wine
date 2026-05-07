@@ -1,0 +1,3 @@
+[submodule "vendor/simpe-fixed"]
+	path = vendor/simpe-fixed
+	url = https://github.com/rhiamom/SimPE-Fixed.git
