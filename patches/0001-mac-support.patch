@@ -1,0 +1,310 @@
+diff --git a/SimPE.Helper/Helper.cs b/SimPE.Helper/Helper.cs
+index 001f0da..8d45bc3 100644
+--- a/SimPE.Helper/Helper.cs
++++ b/SimPE.Helper/Helper.cs
+@@ -22,6 +22,7 @@
+  ***************************************************************************/
+ 
+ using System;
++using System.Diagnostics;
+ using System.IO;
+ using System.Text;
+ using System.Runtime.InteropServices;
+@@ -632,22 +633,55 @@ namespace SimPe
+         public static string Profile { get { return profile; } set { profile = value; } }
+ 
+ 		/// <summary>
+-		/// Returns the Path additional SimPe Files are located in
+-		/// </summary>
+-		public static string SimPeDataPath 
+-		{
+-			get
+-			{
++        /// Returns the Path additional SimPe Files are located in.
++        /// Prefers the local shipped Data folder when available, otherwise
++        /// uses the normal user-specific application data path.
++        /// </summary>
++        public static string SimPeDataPath 
++        {
++            get
++            {
++                string localDataPath = null;
++                try
++                {
++                    string exeDir = Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath);
++                    if (!string.IsNullOrEmpty(exeDir))
++                    {
++                        string candidate = Path.Combine(exeDir, "Data");
++                        if (Directory.Exists(candidate))
++                        {
++                            localDataPath = candidate;
++                        }
++                    }
++                }
++                catch { }
+ 
+-                string path = Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SimPe"), "Data");
+-				// string path = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "Data");
+-				try 
+-				{
+-					if (!Directory.Exists(path))
+-						Directory.CreateDirectory(path);
+-				} 
+-				catch {}
+-				return path;
++                string path = localDataPath;
++                if (string.IsNullOrEmpty(path))
++                {
++                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
++                    {
++                        string home = Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.Personal);
++                        if (!string.IsNullOrEmpty(home))
++                        {
++                            path = Path.Combine(home, "Library", "Application Support", "SimPe", "Data");
++                        }
++                    }
++
++                    if (string.IsNullOrEmpty(path))
++                    {
++                        path = Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SimPe"), "Data");
++                    }
++                }
++
++                try
++                {
++                    Debug.WriteLine("SimPeDataPath selected: " + path);
++                    if (!Directory.Exists(path))
++                        Directory.CreateDirectory(path);
++                }
++                catch {}
++                return path;
+ 			}
+ 		}
+ 
+diff --git a/SimPE.Main/GameRootDialog.Designer.cs b/SimPE.Main/GameRootDialog.Designer.cs
+index 6e43d03..64165ae 100644
+--- a/SimPE.Main/GameRootDialog.Designer.cs
++++ b/SimPE.Main/GameRootDialog.Designer.cs
+@@ -142,7 +142,7 @@
+             this.rbMac.Size = new System.Drawing.Size(222, 29);
+             this.rbMac.TabIndex = 6;
+             this.rbMac.TabStop = true;
+-            this.rbMac.Text = "Mac (coming soon)";
++            this.rbMac.Text = "Mac";
+             this.rbMac.UseVisualStyleBackColor = true;
+             this.rbMac.CheckedChanged += new System.EventHandler(this.EditionRadio_CheckedChanged);
+             // 
+diff --git a/SimPE.Main/GameRootDialog.cs b/SimPE.Main/GameRootDialog.cs
+index 1b8f017..ec1b9c8 100644
+--- a/SimPE.Main/GameRootDialog.cs
++++ b/SimPE.Main/GameRootDialog.cs
+@@ -61,12 +61,13 @@ namespace SimPe
+             bool restored = true;
+             switch (savedEdition)
+             {
+-                case "Legacy":              rbLegacy.Checked = true;  break;
+-                case "Ultimate Collection": rbUC.Checked     = true;  break;
+-                case "Steam":               rbSteam.Checked  = true;  break;
+-                case "Epic":                rbEpic.Checked   = true;  break;
+-                case "Disc":                rbDisc.Checked   = true;  break;
+-                case "Custom":              rbCustom.Checked = true;  break;
++                case "Legacy":              rbLegacy.Checked = true; break;
++                case "Ultimate Collection": rbUC.Checked = true; break;
++                case "Steam":               rbSteam.Checked = true; break;
++                case "Epic":                rbEpic.Checked = true; break;
++                case "Disc":                rbDisc.Checked = true; break;
++                case "Custom":              rbCustom.Checked = true; break;
++                case "Mac":                 rbMac.Checked = true; break;
+                 default:
+                     // First-time setup: no saved edition. Fall back to Legacy default.
+                     rbLegacy.Checked = true;
+@@ -121,6 +122,7 @@ namespace SimPe
+             if (rbEpic.Checked) return "Epic";
+             if (rbDisc.Checked) return "Disc";
+             if (rbCustom.Checked) return "Custom";
++            if (rbMac.Checked) return "Mac";
+ 
+             return string.Empty;
+         }
+@@ -183,51 +185,83 @@ namespace SimPe
+             //    installs can pick the wrapper folder (which lets the scanner discover sibling EPs)
+             //    instead of being forced to point directly at Base (which hides the EPs).
+             if (edition == "Disc" || edition == "Custom")
++            {
++                // (a) User pointed directly at the base game folder
++                string rootTsData = Path.Combine(rootPath, "TSData");
++                if (Directory.Exists(rootTsData))
+                 {
+-                    // (a) User pointed directly at the base game folder
+-                    string rootTsData = Path.Combine(rootPath, "TSData");
+-                    if (Directory.Exists(rootTsData))
+-                    {
+-                        return rootPath;
+-                    }
++                    return rootPath;
++                }
+ 
+-                    // (b) Disc-style wrapper: chosen folder contains "The Sims 2"
+-                    string theSims2 = Path.Combine(rootPath, "The Sims 2");
+-                    if (Directory.Exists(Path.Combine(theSims2, "TSData")))
+-                    {
+-                        return theSims2;
+-                    }
++                // (b) Disc-style wrapper: chosen folder contains "The Sims 2"
++                string theSims2 = Path.Combine(rootPath, "The Sims 2");
++                if (Directory.Exists(Path.Combine(theSims2, "TSData")))
++                {
++                    return theSims2;
++                }
++
++                // (c) Legacy / Steam / Epic wrapper: chosen folder contains "Base"
++                string baseSubfolder = Path.Combine(rootPath, "Base");
++                if (Directory.Exists(Path.Combine(baseSubfolder, "TSData")))
++                {
++                    return baseSubfolder;
++                }
++
++                // (d) Ultimate Collection wrapper: chosen folder contains "Double Deluxe\Base"
++                string ddBase = Path.Combine(rootPath, "Double Deluxe", "Base");
++                if (Directory.Exists(Path.Combine(ddBase, "TSData")))
++                {
++                    return ddBase;
++                }
+ 
+-                    // (c) Legacy / Steam / Epic wrapper: chosen folder contains "Base"
+-                    string baseSubfolder = Path.Combine(rootPath, "Base");
+-                    if (Directory.Exists(Path.Combine(baseSubfolder, "TSData")))
++                // (e) Whatever the scanner identified as base — covers unusual layouts
++                foreach (var p in scanResult.Packs)
++                {
++                    if (p.HasTsData && p.IsBaseGame)
+                     {
+-                        return baseSubfolder;
++                        return p.FullPath;
+                     }
++                }
+ 
+-                    // (d) Ultimate Collection wrapper: chosen folder contains "Double Deluxe\Base"
+-                    string ddBase = Path.Combine(rootPath, "Double Deluxe", "Base");
+-                    if (Directory.Exists(Path.Combine(ddBase, "TSData")))
++                return null;
++            }
++
++            if (edition == "Mac")
++            {
++                string appResources = Path.Combine(rootPath, "Contents", "Resources");
++                if (Directory.Exists(Path.Combine(appResources, "TSData")))
++                {
++                    return appResources;
++                }
++
++                if (Directory.Exists(Path.Combine(rootPath, "TSData")))
++                {
++                    return rootPath;
++                }
++
++                foreach (var p in scanResult.Packs)
++                {
++                    if (p.HasTsData && p.FullPath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
+                     {
+-                        return ddBase;
++                        return p.FullPath;
+                     }
++                }
+ 
+-                    // (e) Whatever the scanner identified as base — covers unusual layouts
+-                    foreach (var p in scanResult.Packs)
++                foreach (var p in scanResult.Packs)
++                {
++                    if (p.HasTsData)
+                     {
+-                        if (p.HasTsData && p.IsBaseGame)
+-                        {
+-                            return p.FullPath;
+-                        }
++                        return p.FullPath;
+                     }
+-
+-                    return null;
+                 }
+ 
+-                // Unknown edition
+                 return null;
+             }
+ 
++            // Unknown edition
++            return null;
++        }
++
+         private void btnOK_Click(object sender, EventArgs e)
+         {
+             // 1) Edition must be selected (in practice, one radio is always checked if you set a default)
+@@ -236,7 +270,7 @@ namespace SimPe
+             {
+                 MessageBox.Show(
+                     this,
+-                    "Please select which type of Sims 2 installation you have (Legacy, UC, Steam, Epic, Disc, or Custom).",
++                    "Please select which type of Sims 2 installation you have (Legacy, UC, Steam, Epic, Disc, Custom, or Mac).",
+                     "Edition Required",
+                     MessageBoxButtons.OK,
+                     MessageBoxIcon.Warning);
+@@ -512,12 +546,19 @@ namespace SimPe
+                 // Custom: leave it blank so the user *must* choose
+                 suggested = string.Empty;
+             }
+-            // If you have a Mac radio button (rbMac), you can either leave this blank
+-            // or later set something like "/Applications/The Sims 2.app" in the Mac build.
+-            // else if (rbMac.Checked)
+-            // {
+-            //     suggested = string.Empty;
+-            // }
++            else if (rbMac.Checked)
++            {
++                string macRoot = "/Applications/The Sims 2.app/Contents/Resources";
++                if (Directory.Exists(macRoot))
++                {
++                    suggested = macRoot;
++                }
++                else
++                {
++                    macRoot = "/Applications/The Sims 2.app";
++                    suggested = Directory.Exists(macRoot) ? macRoot : string.Empty;
++                }
++            }
+ 
+             if (suggested != null)
+             {
+@@ -551,6 +592,33 @@ namespace SimPe
+                 // Custom: leave blank so user must choose if needed
+                 suggested = string.Empty;
+             }
++            else if (rbMac.Checked)
++            {
++                string home = Environment.GetEnvironmentVariable("HOME");
++                if (string.IsNullOrEmpty(home))
++                {
++                    home = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
++                }
++
++                if (!string.IsNullOrEmpty(home))
++                {
++                    suggested = Path.Combine(
++                        home,
++                        "Library",
++                        "Containers",
++                        "com.aspyr.sims2.appstore",
++                        "Data",
++                        "Library",
++                        "Application Support",
++                        "Aspyr",
++                        "The Sims 2",
++                        "Downloads");
++                }
++                else
++                {
++                    suggested = string.Empty;
++                }
++            }
+ 
+             if (suggested != null)
+             {
