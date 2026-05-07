@@ -29,3 +29,4 @@ If the upstream submodule moves and a patch no longer applies, regenerate it the
 ## Files
 
 - `0001-mac-support.patch` — adds Mac edition support to `GameRootDialog` and Mac-aware path resolution to `Helper.SimPeDataPath`.
+- `0002-build-fix-wizardbase-postbuild.patch` — empties the cmd-style `<PostBuildEvent>` in `SimPE.Wizardbase.csproj` (the only project that hadn't already been cleaned up). Without this, the solution can't build on macOS because `if not exist ... mkdir / copy` is `cmd.exe` syntax. The cross-platform `<Copy>` task in `vendor/simpe-fixed/Directory.Build.targets` already handles the equivalent unified-bin copy.
