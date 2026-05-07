@@ -24,3 +24,9 @@ Temporary Items
 
 # Logs
 *.log
+
+# Wineskin build artifacts
+Wineskin-SAMPLE/SimPE.app/
+Wineskin-SAMPLE/dist/
+Wineskin-SAMPLE/Contents/Resources/wineprefix/
+Wineskin-SAMPLE/Contents/Resources/drive_c/

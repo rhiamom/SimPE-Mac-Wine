@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>EXE</key>
+    <string>C:\Program Files\SimPE\SimPE.exe</string>
+    <key>UseWineWrapper</key>
+    <true/>
+    <key>ZDrivePath</key>
+    <string>/</string>
+    <key>WINEDLLOVERRIDES</key>
+    <string>mscoree,mshtml=</string>
+    <key>UseCrt</key>
+    <true/>
+    <key>CustomExecutable</key>
+    <string>C:\Program Files\SimPE\SimPE.exe</string>
+    <key>WineEngine</key>
+    <string>default</string>
+</dict>
+</plist>
