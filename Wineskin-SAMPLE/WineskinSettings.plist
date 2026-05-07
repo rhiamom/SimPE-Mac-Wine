@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>EXE</key>
-    <string>C:\Program Files\SimPE\SimPE.exe</string>
+    <string>C:\Program Files\SimPE\SimPE.Main.exe</string>
     <key>UseWineWrapper</key>
     <true/>
     <key>ZDrivePath</key>
@@ -13,7 +13,7 @@
     <key>UseCrt</key>
     <true/>
     <key>CustomExecutable</key>
-    <string>C:\Program Files\SimPE\SimPE.exe</string>
+    <string>C:\Program Files\SimPE\SimPE.Main.exe</string>
     <key>WineEngine</key>
     <string>default</string>
 </dict>

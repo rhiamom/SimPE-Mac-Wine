@@ -35,18 +35,11 @@ if [ -f "$PWD/Contents/MacOS/run-simpe.sh" ]; then
   chmod +x "$MACOS_DIR/run-simpe.sh"
 fi
 
-# Ensure the wineprefix exists before install.
+# Ensure the wineprefix exists.
 mkdir -p "$RESOURCE_DIR/wineprefix"
 
-# Install .NET 8 inside the wrapper prefix.
-# This script assumes wine and winetricks are available on the host.
-export WINEPREFIX="$RESOURCE_DIR/wineprefix"
-export WINESKIN_APP="$APP_DIR"
-
-if [ -x "$PWD/install-dotnet8.sh" ]; then
-  "$PWD/install-dotnet8.sh"
-else
-  echo "Warning: install-dotnet8.sh not found or executable. Run it manually with the correct wrapper prefix."
-fi
+# Note: SimPE is built self-contained (the .NET 8 Windows Desktop Runtime
+# ships inside the publish folder), so no winetricks dotnet80 install is
+# needed in the wrapper prefix.
 
 echo "Wineskin staging complete. Verify the wrapper in Wineskin Winery if necessary."

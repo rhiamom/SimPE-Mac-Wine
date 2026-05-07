@@ -22,9 +22,9 @@ export WINEPREFIX="$WINEPREFIX"
 export HOME="${HOME:-$(getent passwd $(whoami) | cut -d: -f6)}"
 export WINEDEBUG="-all"
 
-SIMPE_EXE="$RESOURCES_DIR/drive_c/Program Files/SimPE/SimPE.exe"
+SIMPE_EXE="$RESOURCES_DIR/drive_c/Program Files/SimPE/SimPE.Main.exe"
 if [ ! -f "$SIMPE_EXE" ]; then
-    echo "Error: SimPE.exe not found at $SIMPE_EXE"
+    echo "Error: SimPE.Main.exe not found at $SIMPE_EXE"
     exit 1
 fi
 

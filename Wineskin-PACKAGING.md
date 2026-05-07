@@ -51,11 +51,11 @@ This lets SimPE scan for `Z:\Applications\The Sims 2.app`.
 
 ### 1. Build SimPE
 
-Build the Windows `.exe` from `vendor/simpe-fixed/SimPE.Main/SimPE.Main.csproj` using Visual Studio or MSBuild.
+From the repo root, run `./build-simpe.sh`. It applies the patches in `patches/` and runs `dotnet publish -c Release -r win-x64 --self-contained true` against `vendor/simpe-fixed/SimPE.Main/SimPE.Main.csproj`. Output lands at `vendor/simpe-fixed/SimPE.Main/bin/Release/win-x64/publish/`.
 
 ### 2. Prepare local `Data/`
 
-Copy the shipped `Data/` folder next to `SimPE.exe` in the wrapper's `Program Files/SimPE/` folder.
+Copy `vendor/simpe-fixed/Data/` next to `SimPE.Main.exe` in the wrapper's `Program Files/SimPE/` folder.
 
 `Data/` should be included in the app bundle so the patched `Helper.SimPeDataPath` can prefer it.
 
@@ -64,45 +64,36 @@ Copy the shipped `Data/` folder next to `SimPE.exe` in the wrapper's `Program Fi
 Use `Wineskin Winery` (or another Wineskin builder) to create a new wrapper.
 
 Required wrapper settings:
-- Windows EXE: `C:\Program Files\SimPE\SimPE.exe`
-- Engine: a Wine engine compatible with .NET/WinForms (likely `CX11` or `WS9Wine1.7` depending on macOS)
+- Windows EXE: `C:\Program Files\SimPE\SimPE.Main.exe`
+- Engine: a recent Wine engine that supports 64-bit Windows binaries (the published EXE is x86-64). On Intel Macs, the WS11Wine* family or recent CrossOver-based engines from Wineskin Winery work.
 - Set `Advanced -> Tools -> Configuration -> Advanced` for custom `Z:` drive mapping
 - Set `Options -> Screen Options` to run in a single window if desired
 
-### 3.1 .NET 8 Runtime requirement
+### 3.1 .NET 8 Runtime: shipped self-contained
 
-`SimPE-Fixed` is built for `net8.0-windows`, so this wrapper needs a Windows-compatible .NET 8 runtime inside the Wine prefix.
+`SimPE-Fixed` is built for `net8.0-windows`. Rather than installing the runtime into the Wine prefix at packaging time, `build-simpe.sh` runs `dotnet publish --self-contained true -r win-x64`, which embeds the .NET 8 Windows Desktop Runtime directly inside the publish folder (`coreclr.dll`, `hostfxr.dll`, `System.Windows.Forms.dll`, etc.).
 
-- Wine Mono is not sufficient for a `net8.0-windows` WinForms app.
-- You should install or bundle the `Microsoft.NET.Runtime.8.0` and `Microsoft.WindowsDesktop.App` runtime.
-- On Wine, this is typically done by installing `dotnet 8` / `dotnet 8 Desktop Runtime` into the prefix, or by using a compatible `wine-dotnet` implementation.
+This means:
+- No `winetricks dotnet80` step is required.
+- The Wine prefix only needs to be a clean default prefix.
+- The publish folder is ~176 MB; the entire `Contents/Resources/drive_c/Program Files/SimPE/` tree gets copied into the wrapper.
 
-If you can publish a self-contained Windows build, that may simplify runtime dependency handling, but the safest path is still to provide the Windows .NET 8 Desktop runtime inside the wrapper.
+If you ever switch back to a framework-dependent build, you'd need to install `Microsoft.NET.Runtime.8.0` + `Microsoft.WindowsDesktop.App` into the prefix manually — but the self-contained path is recommended for distribution.
 
-### 3.2 Automatic .NET 8 installation
-
-For a truly Mac-friendly experience, the wrapper should include an automated runtime install step during packaging.
-
-- Use `winetricks dotnet80` or an equivalent dotnet installer inside the Wine prefix.
-- Install both `Microsoft.NET.Runtime.8.0` and `Microsoft.WindowsDesktop.App` automatically into `Contents/Resources/wineprefix`.
-- Bundle the completed prefix with the app so the end user does not need to install anything.
-
-If Wineskin is used, the packaging workflow should perform this once while creating the wrapper, then save the completed prefix into the `SimPE.app` bundle.
-
-### 3.3 WineskinLauncher and wrapper defaults
+### 3.2 WineskinLauncher and wrapper defaults
 
 A Wineskin wrapper uses `WineskinLauncher` as the executable entrypoint. For a Mac user-friendly package, ensure that:
 
 - `Contents/Info.plist` sets `CFBundleExecutable` to `WineskinLauncher` or to a custom launcher script.
 - `Contents/Resources/WineskinSettings.plist` contains the Wine prefix path and wrapper options.
-- `Contents/Resources/drive_c/Program Files/SimPE/SimPE.exe` is registered as the wrapper’s default Windows executable.
+- `Contents/Resources/drive_c/Program Files/SimPE/SimPE.Main.exe` is registered as the wrapper’s default Windows executable.
 - `Z:` is configured as a global root drive so `/Applications` is accessible.
 
 Recommended default settings in `WineskinSettings.plist`:
 - `UseWineWrapper` = `true`
 - `WINEDLLOVERRIDES` = `"mscoree,mshtml="` if needed by Wine
 - `UseCrt` = `true`
-- `CustomExecutable` = `"C:\\Program Files\\SimPE\\SimPE.exe"`
+- `CustomExecutable` = `"C:\Program Files\SimPE\SimPE.Main.exe"`
 - `AdvancedOptions` include `Z` drive mapping to `/`
 
 The wrapper should be built once, completely configured, and then packaged as a final `.app` bundle. Apple users should not need to run Wineskin setup or install runtime components manually.

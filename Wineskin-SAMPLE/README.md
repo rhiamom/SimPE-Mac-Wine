@@ -31,17 +31,17 @@ Wineskin-SAMPLE/
 ## Wineskin-specific notes
 
 - A Wineskin wrapper should use `WineskinLauncher` as the main bundle executable.
-- `Contents/Resources/WineskinSettings.plist` should point the wrapper at `C:\\Program Files\\SimPE\\SimPE.exe`.
-- The completed Wine prefix should include `.NET 8 Desktop Runtime` so the app is ready-to-run.
+- `Contents/Resources/WineskinSettings.plist` should point the wrapper at `C:\Program Files\SimPE\SimPE.Main.exe`.
+- SimPE is built self-contained (`build-simpe.sh` at the repo root produces a publish folder that includes the .NET 8 Windows Desktop Runtime), so the Wine prefix does **not** need a separate winetricks dotnet80 install.
 - Use a final `SimPE.app` bundle that contains the prefix and `drive_c` folder so users do not need to install anything.
-- `wineskin-stage.sh` can be used to copy sample settings into an existing wrapper and stage the install.
+- `wineskin-stage.sh` copies sample settings into an existing wrapper.
 
 ## Staging example
 
 Run from the `Wineskin-SAMPLE` directory after you have created a Wineskin wrapper named `SimPE.app`:
 
 ```bash
-chmod +x install-dotnet8.sh wineskin-stage.sh package-dmg.sh
+chmod +x wineskin-stage.sh package-dmg.sh
 ./wineskin-stage.sh
 ```
 
@@ -49,7 +49,7 @@ This script:
 - copies `WineskinSettings.plist` into the wrapper
 - updates `Info.plist` to use `WineskinLauncher`
 - stages the sample `run-simpe.sh`
-- creates the Wine prefix and installs `.NET 8` if `winetricks` is available
+- creates the Wine prefix directory
 
 After staging and verifying the wrapper, create the installer DMG:
 
