@@ -1,0 +1,96 @@
+diff --git a/SimPE.Main/Main.cs b/SimPE.Main/Main.cs
+index 8716b59..d8d3b50 100644
+--- a/SimPE.Main/Main.cs
++++ b/SimPE.Main/Main.cs
+@@ -380,15 +380,26 @@ namespace SimPe
+         private void lv_SelectionChanged(object sender, EventArgs e)
+         {
+             //plugger.ChangedGuiResourceEventHandler(this, new SimPe.Events.ResourceEventArgs(package));
+-            
+ 
+             SimPe.Events.ResourceEventArgs res = new SimPe.Events.ResourceEventArgs(package);
+             try
+             {
+-                if (lv.SelectedItems.Count == 0)
+-                    resloader.Clear();
+-                else foreach (SimPe.Windows.Forms.NamedPackedFileDescriptor lvi in lv.SelectedItems)                
+-                    res.Items.Add(new SimPe.Events.ResourceContainer(lvi.Resource));                
++                // Wine fires a spurious SelectionChanged with Count=0 between selections
++                // (and on every tree-view category click). Calling resloader.Clear() here
++                // would close every open resource editor on every click. The wizard /
++                // package-load paths still call Clear() explicitly when needed.
++                if (lv.SelectedItems.Count > 0)
++                {
++                    foreach (SimPe.Windows.Forms.NamedPackedFileDescriptor lvi in lv.SelectedItems)
++                        res.Items.Add(new SimPe.Events.ResourceContainer(lvi.Resource));
++
++                    // Wine: ListView.Click doesn't fire reliably, so SimpleResourceSelect
++                    // single-click-to-open never triggers via lv_Click -> OnSelectResource.
++                    // Mirror it here on the selection-changed path. Idempotent on Windows
++                    // (FocusResource short-circuits the second call).
++                    if (Helper.WindowsRegistry.SimpleResourceSelect && lv.SelectedItem != null)
++                        resloader.AddResource(lv.SelectedItem, true);
++                }
+             }
+             catch (Exception ex)
+             {
+diff --git a/SimPE.Scenegraph/SubsetSelectForm.cs b/SimPE.Scenegraph/SubsetSelectForm.cs
+index eff4a11..964f48a 100644
+--- a/SimPE.Scenegraph/SubsetSelectForm.cs
++++ b/SimPE.Scenegraph/SubsetSelectForm.cs
+@@ -201,7 +201,16 @@ namespace SimPe.Plugin
+ 			lv.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom;
+ 			lv.HideSelection = false;
+ 			lv.MultiSelect = false;
++			// Wine compat: default LargeIcon view drops mouse events on item clicks
++			// under Wine — Tile view keeps thumbnails visible AND fires events.
++			lv.View = View.Tile;
++			lv.TileSize = new Size(ImageSize.Width + 8, ImageSize.Height + 8);
+ 			lv.SelectedIndexChanged += new EventHandler(SelectedIndexChanged);
++			// Wine compat: even with Tile view, SelectedIndices is not always
++			// updated on click — force it explicitly via HitTest. Idempotent on
++			// Windows (the if-check skips when the item is already selected).
++			lv.MouseDown += new MouseEventHandler(SubsetLv_MouseDown);
++			lv.MouseUp += new MouseEventHandler(SubsetLv_MouseUp);
+ 			cb.Tag = lv;
+ 
+ 			ImageList il = new ImageList();
+@@ -442,6 +451,38 @@ namespace SimPe.Plugin
+ 			button1.Enabled = CanContinue;
+ 		}
+ 
++		// Wine compat: force ListView selection on left-click via HitTest, because
++		// Wine does not reliably update SelectedIndices when an item is clicked
++		// in icon/tile view. Without this, Finish() returns the auto-selected
++		// default for any subset the user clicked but Wine "didn't notice".
++		private void ForceSelect(ListView lv, int x, int y)
++		{
++			ListViewHitTestInfo hit = lv.HitTest(x, y);
++			if (hit.Item == null || hit.Item.Selected) return;
++			lv.BeginUpdate();
++			try
++			{
++				foreach (ListViewItem item in lv.SelectedItems) item.Selected = false;
++				hit.Item.Selected = true;
++				hit.Item.Focused = true;
++				hit.Item.EnsureVisible();
++			}
++			finally
++			{
++				lv.EndUpdate();
++			}
++		}
++
++		private void SubsetLv_MouseDown(object sender, MouseEventArgs e)
++		{
++			if (e.Button == MouseButtons.Left) ForceSelect((ListView)sender, e.X, e.Y);
++		}
++
++		private void SubsetLv_MouseUp(object sender, MouseEventArgs e)
++		{
++			if (e.Button == MouseButtons.Left) ForceSelect((ListView)sender, e.X, e.Y);
++		}
++
+ 		bool internalupdate = false;
+ 		private void SelectedIndexChanged(object sender, EventArgs e)
+ 		{
