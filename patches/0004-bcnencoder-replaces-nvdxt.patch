@@ -1,0 +1,192 @@
+diff --git a/SimPE.RCOL/DDSTool.cs b/SimPE.RCOL/DDSTool.cs
+index 12a73a6..890b917 100644
+--- a/SimPE.RCOL/DDSTool.cs
++++ b/SimPE.RCOL/DDSTool.cs
+@@ -422,6 +422,61 @@ namespace SimPe.Plugin
+ 		}
+ 
+         private static byte[] LoadFileAsRgba(string filename, out int w, out int h)
++        {
++            // Pfim is good at DDS/TGA/BMP but does not handle PNG/JPG reliably,
++            // and the caller needs to encode arbitrary user-provided PNGs into
++            // DXT. Try Pfim first; on any failure (or for clearly common
++            // raster formats) fall back to System.Drawing.
++            string ext = System.IO.Path.GetExtension(filename).ToLowerInvariant();
++            bool preferGdi = ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif";
++            if (preferGdi) return LoadFileAsRgbaViaGdi(filename, out w, out h);
++
++            try { return LoadFileAsRgbaViaPfim(filename, out w, out h); }
++            catch (Exception ex)
++            {
++                System.Diagnostics.Debug.WriteLine("LoadFileAsRgba: Pfim failed (" + ex.GetType().Name + ": " + ex.Message + "), falling back to GDI+");
++                return LoadFileAsRgbaViaGdi(filename, out w, out h);
++            }
++        }
++
++        private static byte[] LoadFileAsRgbaViaGdi(string filename, out int w, out int h)
++        {
++            using (var bmp = new System.Drawing.Bitmap(filename))
++            {
++                w = bmp.Width;
++                h = bmp.Height;
++                byte[] rgba = new byte[w * h * 4];
++                var rect = new System.Drawing.Rectangle(0, 0, w, h);
++                var data = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly,
++                                        System.Drawing.Imaging.PixelFormat.Format32bppArgb);
++                try
++                {
++                    int stride = data.Stride;
++                    var src = new byte[stride * h];
++                    System.Runtime.InteropServices.Marshal.Copy(data.Scan0, src, 0, src.Length);
++                    // GDI+ Format32bppArgb is BGRA in memory; BCnEncoder wants RGBA.
++                    for (int y = 0; y < h; y++)
++                    {
++                        for (int x = 0; x < w; x++)
++                        {
++                            int si = y * stride + x * 4;
++                            int di = (y * w + x) * 4;
++                            rgba[di]     = src[si + 2]; // R from BGRA's R
++                            rgba[di + 1] = src[si + 1]; // G
++                            rgba[di + 2] = src[si];     // B from BGRA's B
++                            rgba[di + 3] = src[si + 3]; // A
++                        }
++                    }
++                }
++                finally
++                {
++                    bmp.UnlockBits(data);
++                }
++                return rgba;
++            }
++        }
++
++        private static byte[] LoadFileAsRgbaViaPfim(string filename, out int w, out int h)
+         {
+             using var pfimImage = Pfimage.FromFile(filename);
+             w = pfimImage.Width;
+@@ -502,7 +557,11 @@ namespace SimPe.Plugin
+             int w, h;
+             byte[] rgba;
+             try { rgba = LoadFileAsRgba(imgname, out w, out h); }
+-            catch { return new DDSData[0]; }
++            catch (Exception ex)
++            {
++                Helper.ExceptionMessage("Could not decode image for DXT encoding: " + imgname, ex);
++                return new DDSData[0];
++            }
+ 
+             string ddsfile = System.IO.Path.GetTempFileName() + ".dds";
+             try
+diff --git a/SimPE.Scenegraph/BuildTxtr.cs b/SimPE.Scenegraph/BuildTxtr.cs
+index f4bf3d8..5374dc8 100644
+--- a/SimPE.Scenegraph/BuildTxtr.cs
++++ b/SimPE.Scenegraph/BuildTxtr.cs
+@@ -241,7 +241,9 @@ namespace SimPe.Plugin
+             //build TXTR File
+             ImageData id = new SimPe.Plugin.ImageData(null);
+ 
+-            if ((System.IO.File.Exists(PathProvider.Global.NvidiaDDSTool)) && ((format == ImageLoader.TxtrFormats.DXT1Format) || (format == ImageLoader.TxtrFormats.DXT3Format) || (format == ImageLoader.TxtrFormats.DXT5Format)))
++            // DXT compression now goes through BCnEncoder via DDSTool.BuildDDS;
++            // the legacy nvdxt.exe gate has been removed.
++            if ((format == ImageLoader.TxtrFormats.DXT1Format) || (format == ImageLoader.TxtrFormats.DXT3Format) || (format == ImageLoader.TxtrFormats.DXT5Format))
+             {
+                 LoadDDS(id, DDSTool.BuildDDS(filename, levels, format, "-sharpenMethod Smoothen"));
+             }
+diff --git a/SimPE.Scenegraph/TxtrForm.cs b/SimPE.Scenegraph/TxtrForm.cs
+index 1727e6e..3deb824 100644
+--- a/SimPE.Scenegraph/TxtrForm.cs
++++ b/SimPE.Scenegraph/TxtrForm.cs
+@@ -1171,23 +1171,25 @@ namespace SimPe.Plugin
+ 		private void ContextPopUp(object sender, System.ComponentModel.CancelEventArgs e)
+ 		{
+ 			milifo.Enabled = false;
+-            this.mibuild.Enabled = System.IO.File.Exists(PathProvider.Global.NvidiaDDSTool);
++            // DXT encoding is handled in-process by BCnEncoder (see DDSTool.BuildDDS),
++            // so this menu item is always available — the legacy nvdxt.exe gate is gone.
++            this.mibuild.Enabled = true;
+ 			if (lbimg.SelectedIndex<0) return;
+-			try 
++			try
+ 			{
+-				if (lbimg.SelectedIndex>=0) 
++				if (lbimg.SelectedIndex>=0)
+ 				{
+ 					MipMap mm = (MipMap)lbimg.Items[lbimg.SelectedIndex];
+ 					Interfaces.Files.IPackedFileDescriptor pfd = GetLocalLifo(mm);
+ 					milifo.Enabled = (pfd != null);
+-				} 
+-				else 
++				}
++				else
+ 				{
+ 					milifo.Enabled = false;
+ 				}
+-                mibuild.Enabled = (System.IO.File.Exists(PathProvider.Global.NvidiaDDSTool));
+-			} 
+-			catch (Exception ex) 
++                mibuild.Enabled = true;
++			}
++			catch (Exception ex)
+ 			{
+ 				Helper.ExceptionMessage("", ex);
+ 			}
+@@ -1386,6 +1388,15 @@ namespace SimPe.Plugin
+ 			ImageData id = SelectedImageData();
+ 			LoadDDS(dds.Execute(Convert.ToInt32(this.tblevel.Text), id.TextureSize, id.Format));
+ 			id.Refresh();
++
++			// Wine: programmatic SelectedIndex inside LoadDDS does not always fire
++			// PictureSelect, so the picture box would otherwise keep showing the
++			// pre-build image. Force pb.Image to the newly-encoded mipmap directly.
++			if (lbimg.SelectedIndex >= 0)
++			{
++				MipMap sel = (MipMap)lbimg.Items[lbimg.SelectedIndex];
++				if (sel.Texture != null) pb.Image = sel.Texture;
++			}
+ 		}
+ 	}
+ }
+diff --git a/SimPE.Toolbox/PhotoStudio.cs b/SimPE.Toolbox/PhotoStudio.cs
+index cfc0523..7527b6e 100644
+--- a/SimPE.Toolbox/PhotoStudio.cs
++++ b/SimPE.Toolbox/PhotoStudio.cs
+@@ -104,11 +104,10 @@ namespace SimPe.Plugin
+                 sfd.InitialDirectory = System.IO.Path.Combine(PathProvider.SimSavegameFolder, "Downloads");
+ 
+                 cbquality.SelectedIndex = 0;
+-                if (System.IO.File.Exists(PathProvider.Global.NvidiaDDSTool))
+-                {
+-                    cbquality.Items.Add("Use Nvidia DDS Tools");
+-                    cbquality.SelectedIndex = cbquality.Items.Count - 1;
+-                }
++                // BCnEncoder is always available for DXT compression — surface it as the
++                // preferred quality option (replaces the old nvdxt.exe-only branch).
++                cbquality.Items.Add("Use DXT compression (BCnEncoder)");
++                cbquality.SelectedIndex = cbquality.Items.Count - 1;
+             }
+             finally
+             {
+@@ -584,7 +583,8 @@ namespace SimPe.Plugin
+                     g.DrawImage(mmimg, template.TargetRectangle, rect, System.Drawing.GraphicsUnit.Pixel);
+ 
+ 
+-                    if ((System.IO.File.Exists(PathProvider.Global.NvidiaDDSTool)) && (ddstool) && ((format == ImageLoader.TxtrFormats.DXT1Format) || (format == ImageLoader.TxtrFormats.DXT3Format) || (format == ImageLoader.TxtrFormats.DXT5Format)))
++                    // BCnEncoder handles DXT compression in-process; nvdxt.exe gate dropped.
++                    if ((ddstool) && ((format == ImageLoader.TxtrFormats.DXT1Format) || (format == ImageLoader.TxtrFormats.DXT3Format) || (format == ImageLoader.TxtrFormats.DXT5Format)))
+                     {
+                         DDSTool.AddDDsData(id, DDSTool.BuildDDS(mm.Texture, (int)id.MipMapLevels, format, "-sharpenMethod Smoothen"));
+                     }
+diff --git a/__NonCore/WOSimPe - Recolor/RecolorWizardForm.cs b/__NonCore/WOSimPe - Recolor/RecolorWizardForm.cs
+index e334e13..b4bc8d6 100644
+--- a/__NonCore/WOSimPe - Recolor/RecolorWizardForm.cs	
++++ b/__NonCore/WOSimPe - Recolor/RecolorWizardForm.cs	
+@@ -988,7 +988,8 @@ namespace SimPe.Wizards
+ 				id.BlockID = oldid.BlockID;
+ 				id.BlockName = oldid.BlockName;
+ 
+-                if ((System.IO.File.Exists(PathProvider.Global.NvidiaDDSTool)) && ((oldid.Format == SimPe.Plugin.ImageLoader.TxtrFormats.DXT1Format) || (oldid.Format == SimPe.Plugin.ImageLoader.TxtrFormats.DXT3Format) || (oldid.Format == SimPe.Plugin.ImageLoader.TxtrFormats.DXT5Format)))
++                // BCnEncoder handles DXT compression in-process; nvdxt.exe gate dropped.
++                if ((oldid.Format == SimPe.Plugin.ImageLoader.TxtrFormats.DXT1Format) || (oldid.Format == SimPe.Plugin.ImageLoader.TxtrFormats.DXT3Format) || (oldid.Format == SimPe.Plugin.ImageLoader.TxtrFormats.DXT5Format))
+ 				{
+                     SimPe.Plugin.BuildTxtr.LoadDDS(id, SimPe.Plugin.DDSTool.BuildDDS(ofd.FileName, (int)oldid.MipMapLevels, oldid.Format, "-sharpenMethod Smoothen"));
+ 				} 
