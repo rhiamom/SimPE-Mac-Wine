@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Hardened-runtime entitlements for the Wineskin SimPE bundle.
+
+  Wine does several things that macOS's hardened runtime forbids by default,
+  so we have to grant explicit exceptions or the notarized app will fail to
+  launch with cryptic "killed: 9" or codesign errors:
+
+    allow-jit
+        Wine's CPU emulation paths and the .NET 8 RyuJIT both rely on
+        runtime-generated code.
+
+    allow-unsigned-executable-memory
+        Wine maps Windows .exe / .dll pages as executable; those pages have
+        no Apple signature.
+
+    disable-library-validation
+        We load .NET-runtime DLLs and SimPE plugin DLLs that aren't signed
+        with our team identifier. Library validation would block them.
+
+    disable-executable-page-protection
+        Wine flips page protections (RW <-> RX) on JIT'd code regions.
+
+    allow-dyld-environment-variables
+        Wineskin sets DYLD_FALLBACK_LIBRARY_PATH (and friends) before exec'ing
+        wineserver. With hardened runtime those env vars are stripped unless
+        we explicitly allow them.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <key>com.apple.security.cs.disable-executable-page-protection</key>
+    <true/>
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+</dict>
+</plist>
