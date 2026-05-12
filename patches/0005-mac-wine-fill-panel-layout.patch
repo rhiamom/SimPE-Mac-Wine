@@ -1,0 +1,59 @@
+diff --git a/NetDocks/Ambertation.Windows.Forms/DockContainer.cs b/NetDocks/Ambertation.Windows.Forms/DockContainer.cs
+index b8b0e27..004ad3c 100644
+--- a/NetDocks/Ambertation.Windows.Forms/DockContainer.cs
++++ b/NetDocks/Ambertation.Windows.Forms/DockContainer.cs
+@@ -450,6 +450,54 @@ public class DockContainer : NCUserControl, IButtonContainer
+ 		base.OnSizeChanged(e);
+ 	}
+ 
++	// Mac/Wine: Wine's WinForms layout engine sometimes fails to shrink Dock=Fill
++	// panels when there are edge-docked sibling DockContainers. Standard WinForms
++	// would set Fill.Bounds = parent.DisplayRectangle minus the edge-claimed strips;
++	// Wine leaves Fill at stale (often initial) bounds, causing the Fill panel to
++	// extend behind the edge-docked siblings. Override OnLayout to compute the
++	// correct Fill bounds explicitly using the same subtraction formula that
++	// CalculateDockAreaBounds uses, and assign them.
++	private bool _wineLayoutGuard;
++	protected override void OnLayout(LayoutEventArgs levent)
++	{
++		base.OnLayout(levent);
++		if (_wineLayoutGuard) return;
++		if (panels == null || panels.Count == 0) return;
++
++		Rectangle dr = DisplayRectangle;
++		int left = dr.X;
++		int top = dr.Y;
++		int wd = dr.Width;
++		int hg = dr.Height;
++		if (containers != null)
++		{
++			foreach (DockContainer c in containers)
++			{
++				if (!c.Visible) continue;
++				if (c.Dock == DockStyle.Left)        { left += c.Width;  wd -= c.Width; }
++				else if (c.Dock == DockStyle.Top)    { top  += c.Height; hg -= c.Height; }
++				else if (c.Dock == DockStyle.Right)  { wd -= c.Width; }
++				else if (c.Dock == DockStyle.Bottom) { hg -= c.Height; }
++			}
++		}
++		if (wd < 0) wd = 0;
++		if (hg < 0) hg = 0;
++		Rectangle fillBounds = new Rectangle(left, top, wd, hg);
++
++		_wineLayoutGuard = true;
++		try
++		{
++			foreach (DockPanel p in panels)
++			{
++				if (p.Dock == DockStyle.Fill && p.Bounds != fillBounds)
++				{
++					p.Bounds = fillBounds;
++				}
++			}
++		}
++		finally { _wineLayoutGuard = false; }
++	}
++
+ 	protected override void OnParentChanged(EventArgs e)
+ 	{
+ 		base.OnParentChanged(e);

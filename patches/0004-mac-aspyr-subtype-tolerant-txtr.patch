@@ -1,0 +1,32 @@
+diff --git a/SimPE.Scenegraph/MmatWrapper.cs b/SimPE.Scenegraph/MmatWrapper.cs
+index 1fcfd8e..0fe411a 100644
+--- a/SimPE.Scenegraph/MmatWrapper.cs
++++ b/SimPE.Scenegraph/MmatWrapper.cs
+@@ -358,6 +358,27 @@ namespace SimPe.Plugin
+                         txtr.ProcessData(items[0].FileDescriptor, items[0].Package);
+                         return txtr;
+                     }
++
++                    // Mac/Aspyr: the four Stuff Packs missing from the Aspyr Sims 2 Super
++                    // Collection (Ikea, Kitchen & Bath, Teen Style, Celebration) were extracted
++                    // from the Windows install by Huge Lunatic and re-bundled so the Mac game
++                    // accepts them. In those bundles, TXTR resources are stored with the older
++                    // 7-byte instance format (SubType=0) while the TXMT ReferenceChains still
++                    // encode the original 8-byte instance (SubType != 0). FindFileDiscardingGroup
++                    // keys on full LongInstance, so the upper-half SubType mismatch makes the
++                    // strict lookup miss. Retry with the lower 32-bit Instance only.
++                    if (want.SubType != 0)
++                    {
++                        Interfaces.Scenegraph.IScenegraphFileIndexItem[] items3b =
++                            FileTableBase.FileIndex.FindFileDiscardingGroup(want.Type, (ulong)want.Instance);
++
++                        if (items3b != null && items3b.Length > 0)
++                        {
++                            GenericRcol txtr = new GenericRcol(null, false);
++                            txtr.ProcessData(items3b[0].FileDescriptor, items3b[0].Package);
++                            return txtr;
++                        }
++                    }
+                 }
+             }
+ 

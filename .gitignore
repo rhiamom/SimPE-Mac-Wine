@@ -30,3 +30,9 @@ Wineskin-SAMPLE/SimPE.app/
 Wineskin-SAMPLE/dist/
 Wineskin-SAMPLE/Contents/Resources/wineprefix/
 Wineskin-SAMPLE/Contents/Resources/drive_c/
+
+# Deployed app (output of ./deploy.sh)
+SimPE.app/
+
+# Claude Code session data
+.claude/
