@@ -34,5 +34,9 @@ Wineskin-SAMPLE/Contents/Resources/drive_c/
 # Deployed app (output of ./deploy.sh)
 SimPE.app/
 
+# Sign-and-notarize outputs
+dist/
+entitlements.plist
+
 # Claude Code session data
 .claude/
