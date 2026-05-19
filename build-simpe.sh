@@ -13,6 +13,7 @@ REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 SUBMODULE_DIR="$REPO_ROOT/vendor/simpe-fixed"
 SLN="$SUBMODULE_DIR/SimPE-Fixed.sln"
 MAIN_PROJ="$SUBMODULE_DIR/SimPE.Main/SimPE.Main.csproj"
+WIZARDS_PROJ="$SUBMODULE_DIR/Wizards of SimPe/Wizards of SimPe.csproj"
 
 # Apply local patches before building.
 "$REPO_ROOT/patches/apply.sh"
@@ -54,6 +55,29 @@ dotnet publish "$MAIN_PROJ" \
   -p:ErrorOnDuplicatePublishOutputFiles=false
 
 PUBLISH_DIR="$SUBMODULE_DIR/SimPE.Main/bin/Release/win-x64/publish"
+
+# Step 4b: Republish "Wizards of SimPe" self-contained and overlay it.
+#
+# SimPE.ToolBoxWorkshops has a ProjectReference to "Wizards of SimPe", so
+# Main's publish builds Wizards transitively — but `--self-contained` does NOT
+# propagate through ProjectReferences to WinExe projects. The transitive build
+# produces a framework-dependent `Wizards of SimPe.runtimeconfig.json` that
+# asks for an installed Microsoft.NETCore.App 8.0.0. Inside the Wine prefix
+# there's no shared runtime, so launching Wizards from SimPE's menu pops
+# Wine's "You must install or update .NET" dialog.
+#
+# Publishing Wizards directly with --self-contained writes a runtimeconfig
+# that uses `includedFrameworks` (matching Main) so it consumes the runtime
+# DLLs already sitting alongside it in the SimPE folder.
+dotnet publish "$WIZARDS_PROJ" \
+  -c Release \
+  -r win-x64 \
+  --self-contained true \
+  -p:EnableWindowsTargeting=true \
+  -p:ErrorOnDuplicatePublishOutputFiles=false
+
+WIZARDS_PUBLISH_DIR="$SUBMODULE_DIR/Wizards of SimPe/bin/Release/win-x64/publish"
+cp -R "$WIZARDS_PUBLISH_DIR"/. "$PUBLISH_DIR"/
 
 # Step 5: Overlay plugins and data into the publish output.
 [ -d "$STAGE_DIR/Plugins" ] && cp -R "$STAGE_DIR/Plugins" "$PUBLISH_DIR/"
