@@ -33,4 +33,7 @@ If the upstream submodule moves and a patch no longer applies, regenerate it the
 - `0003-mac-wine-listview-events.patch` — switches the `SubsetSelectForm` ListView to `View.Tile` and adds forced-selection mouse handlers, working around Wine's unreliable LargeIcon-view mouse events and `SelectedIndices` updates.
 - `0004-mac-aspyr-subtype-tolerant-txtr.patch` — adds a SubType-tolerant fallback in `MmatWrapper.GetTxtr` for the four Stuff Packs (Ikea, Kitchen & Bath, Teen Style, Celebration) that Huge Lunatic extracted from the Windows install for the Aspyr Mac game. Those re-bundled TXTRs are stored with `SubType=0` while TXMT references encode a non-zero SubType, so the strict `LongInstance` lookup misses; the fallback retries with the lower 32-bit Instance only.
 - `0005-mac-wine-fill-panel-layout.patch` — overrides `DockContainer.OnLayout` in the Ambertation NetDocks framework to explicitly position `Dock=Fill` panels using the same subtraction formula `CalculateDockAreaBounds` uses. Wine's WinForms layout engine sometimes fails to shrink Fill panels when edge-docked sibling DockContainers claim their strips, leaving Fill at stale bounds (the Resource ListView ended up hidden behind the Resource TreeView). The override applies correct bounds after every layout pass; recursion-guarded.
-- `0006-version-bump-8.2.9.patch` — bumps `<Version>`, `<FileVersion>`, and `<AssemblyVersion>` in `Directory.Build.targets` from `8.2.8` to `8.2.9` for the Mac release.
+
+> A `0006-version-bump-*.patch` used to live here to set the Mac release version. It was
+> retired when `vendor/simpe-fixed` reached 0.8.2.14 — upstream now sets `<Version>` itself
+> (the "Bump to 8.2.x" commits), so the Mac side no longer needs to patch it.
