@@ -1,5 +1,5 @@
 diff --git a/SimPe Collection Creator Plugin/CollectionCreatorForm.Handlers.cs b/SimPe Collection Creator Plugin/CollectionCreatorForm.Handlers.cs
-index 3e3605e..349af1c 100644
+index 3e3605e..872b305 100644
 --- a/SimPe Collection Creator Plugin/CollectionCreatorForm.Handlers.cs	
 +++ b/SimPe Collection Creator Plugin/CollectionCreatorForm.Handlers.cs	
 @@ -201,7 +201,14 @@ namespace SimPe.Plugin
@@ -30,10 +30,16 @@ index 3e3605e..349af1c 100644
              dlgPickFolder.Description = "Choose a folder of .package files to batch-add";
              if (dlgPickFolder.ShowDialog(this) != DialogResult.OK) return;
              string folder = dlgPickFolder.SelectedPath;
-@@ -595,6 +607,19 @@ namespace SimPe.Plugin
+@@ -595,16 +607,55 @@ namespace SimPe.Plugin
          void OnFormLoadedFirstTime()
          {
              var opts = CollectionOptions.Load();
++
++            // Did a real saved config exist BEFORE we seed Mac defaults? The
++            // first-run Options prompt gates on this, not on the post-seed
++            // state — otherwise seeding CollectionsDir below makes IsConfigured
++            // true and the prompt never shows on a genuine first run.
++            bool hadSavedConfig = opts.IsConfigured;
 +
 +            // Mac/Wine: seed any unset path from the Sims 2 user folder SimPE
 +            // already resolved. Helper.DownloadsPath is the Wine-visible
@@ -50,10 +56,21 @@ index 3e3605e..349af1c 100644
              txtCollDir.Text    = opts.CollectionsDir;
              txtThumbDir.Text   = opts.ThumbnailsDir;
              chkWarningOff.Checked = opts.WarningsOff;
-@@ -607,6 +632,22 @@ namespace SimPe.Plugin
-             }
-         }
+             chkCompression.Checked = opts.CompressOnSave;
  
+-            if (!opts.IsConfigured)
++            // Genuine first run (no saved CollectionCreator.txt): open Options
++            // so the user confirms the folders. On Mac they arrive pre-filled.
++            if (!hadSavedConfig)
+             {
+                 EnterMode(UIMode.Options);
+-                SetStatus("Welcome — set your Collections folder, then click OK.");
++                SetStatus(simsRoot != null
++                    ? "Mac game folders detected — confirm the paths below and click OK."
++                    : "Welcome — set your Collections folder, then click OK.");
++            }
++        }
++
 +        // Sims 2 user root = the parent of the Downloads folder SimPE resolved
 +        // (Collections/Thumbnails sit alongside it). Returns null when the game
 +        // root isn't set yet. Under Wine this is a Windows-form path (e.g.
@@ -66,10 +83,8 @@ index 3e3605e..349af1c 100644
 +                if (string.IsNullOrEmpty(dl)) return null;
 +                return Path.GetDirectoryName(
 +                    dl.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-+            }
+             }
 +            catch { return null; }
-+        }
-+
+         }
+ 
          void CmdCloseOptions_Click(object sender, EventArgs e)
-         {
-             new CollectionOptions
