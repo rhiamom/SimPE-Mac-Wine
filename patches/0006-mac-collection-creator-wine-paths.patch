@@ -1,0 +1,75 @@
+diff --git a/SimPe Collection Creator Plugin/CollectionCreatorForm.Handlers.cs b/SimPe Collection Creator Plugin/CollectionCreatorForm.Handlers.cs
+index 3e3605e..349af1c 100644
+--- a/SimPe Collection Creator Plugin/CollectionCreatorForm.Handlers.cs	
++++ b/SimPe Collection Creator Plugin/CollectionCreatorForm.Handlers.cs	
+@@ -201,7 +201,14 @@ namespace SimPe.Plugin
+         // user commit or cancel. Multi-file adds go through Batch Add.
+         void Command1_Click(object sender, EventArgs e)
+         {
+-            if (current == null || dlgAddObject.ShowDialog(this) != DialogResult.OK) return;
++            if (current == null) return;
++
++            // Mac/Wine: open the picker on the resolved Sims 2 Downloads folder
++            // rather than Wine's empty C: drive.
++            if (!string.IsNullOrEmpty(Helper.DownloadsPath) && Directory.Exists(Helper.DownloadsPath))
++                dlgAddObject.InitialDirectory = Helper.DownloadsPath;
++
++            if (dlgAddObject.ShowDialog(this) != DialogResult.OK) return;
+ 
+             string path = dlgAddObject.FileName;
+             string nameTable = dataFolder != null
+@@ -364,6 +371,11 @@ namespace SimPe.Plugin
+         {
+             if (current == null) return;
+ 
++            // Mac/Wine: start the folder picker at the resolved Sims 2 Downloads
++            // folder so the user isn't dropped on Wine's empty C: drive.
++            if (!string.IsNullOrEmpty(Helper.DownloadsPath) && Directory.Exists(Helper.DownloadsPath))
++                dlgPickFolder.SelectedPath = Helper.DownloadsPath;
++
+             dlgPickFolder.Description = "Choose a folder of .package files to batch-add";
+             if (dlgPickFolder.ShowDialog(this) != DialogResult.OK) return;
+             string folder = dlgPickFolder.SelectedPath;
+@@ -595,6 +607,19 @@ namespace SimPe.Plugin
+         void OnFormLoadedFirstTime()
+         {
+             var opts = CollectionOptions.Load();
++
++            // Mac/Wine: seed any unset path from the Sims 2 user folder SimPE
++            // already resolved. Helper.DownloadsPath is the Wine-visible
++            // Downloads folder (a Z: path into the Aspyr container); Collections
++            // and Thumbnails are its siblings. Without this the browse dialogs
++            // open on Wine's empty C: drive, nowhere near the real Mac game
++            // folders. Only fills blanks — a saved user choice always wins.
++            string simsRoot = MacSimsUserRoot();
++            if (string.IsNullOrEmpty(opts.CollectionsDir) && simsRoot != null)
++                opts.CollectionsDir = Path.Combine(simsRoot, "Collections");
++            if (string.IsNullOrEmpty(opts.ThumbnailsDir) && simsRoot != null)
++                opts.ThumbnailsDir = Path.Combine(simsRoot, "Thumbnails");
++
+             txtCollDir.Text    = opts.CollectionsDir;
+             txtThumbDir.Text   = opts.ThumbnailsDir;
+             chkWarningOff.Checked = opts.WarningsOff;
+@@ -607,6 +632,22 @@ namespace SimPe.Plugin
+             }
+         }
+ 
++        // Sims 2 user root = the parent of the Downloads folder SimPE resolved
++        // (Collections/Thumbnails sit alongside it). Returns null when the game
++        // root isn't set yet. Under Wine this is a Windows-form path (e.g.
++        // Z:\...\The Sims 2) so it feeds straight into the WinForms dialogs.
++        static string MacSimsUserRoot()
++        {
++            try
++            {
++                string dl = Helper.DownloadsPath;
++                if (string.IsNullOrEmpty(dl)) return null;
++                return Path.GetDirectoryName(
++                    dl.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
++            }
++            catch { return null; }
++        }
++
+         void CmdCloseOptions_Click(object sender, EventArgs e)
+         {
+             new CollectionOptions
