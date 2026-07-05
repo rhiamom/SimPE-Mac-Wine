@@ -1,0 +1,24 @@
+diff --git a/ColorBinningTool/MainForm.cs b/ColorBinningTool/MainForm.cs
+index 9d5a949..5edd92c 100644
+--- a/ColorBinningTool/MainForm.cs
++++ b/ColorBinningTool/MainForm.cs
+@@ -37,6 +37,19 @@ namespace SimPe.Plugin.UI
+ 			SetupViewContextMenu();
+ 			ResetSession();
+ 			this.tcMain_Selected(null, null);
++
++			// Mac/Wine: default the package Open/Save dialogs to the Sims 2
++			// Downloads folder SimPE resolved (SimPe.Helper.DownloadsPath — a Z:
++			// path into the Aspyr container under Wine) so they don't open on
++			// Wine's empty C: drive, where recolors never live. Set once here;
++			// WinForms then remembers wherever the user last browsed for
++			// subsequent opens.
++			if (!string.IsNullOrEmpty(SimPe.Helper.DownloadsPath) &&
++				System.IO.Directory.Exists(SimPe.Helper.DownloadsPath))
++			{
++				this.dlgOpenPackageFile.InitialDirectory = SimPe.Helper.DownloadsPath;
++				this.dlgSavePackageFile.InitialDirectory = SimPe.Helper.DownloadsPath;
++			}
+         }
+ 
+         #region Initial Setup
