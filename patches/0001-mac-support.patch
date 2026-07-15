@@ -1,8 +1,8 @@
 diff --git a/SimPE.Helper/GameRootAutoScanner.cs b/SimPE.Helper/GameRootAutoScanner.cs
-index 474bfab..d9e776f 100644
+index 63d735c..01e6732 100644
 --- a/SimPE.Helper/GameRootAutoScanner.cs
 +++ b/SimPE.Helper/GameRootAutoScanner.cs
-@@ -203,11 +203,12 @@ namespace SimPe
+@@ -227,11 +227,12 @@ namespace SimPe
  
                  // If this folder contains TSData, it's a pack root.
                  string tsDataPath = Path.Combine(currentDir, "TSData");
@@ -17,7 +17,7 @@ index 474bfab..d9e776f 100644
  
                          // Treat both "Base" (Legacy-style) and "The Sims 2" (disc-style) as base game
                          bool isBaseChild =
-@@ -225,12 +226,15 @@ namespace SimPe
+@@ -249,12 +250,15 @@ namespace SimPe
  
                          seenPackPaths.Add(currentDir);
                      }
@@ -37,7 +37,7 @@ index 474bfab..d9e776f 100644
                  string[] subDirs;
                  try
                  {
-@@ -245,6 +249,10 @@ namespace SimPe
+@@ -269,6 +273,10 @@ namespace SimPe
                  {
                      string subName = Path.GetFileName(sub) ?? sub;
  
@@ -48,9 +48,9 @@ index 474bfab..d9e776f 100644
                      // Ignore EA patch / temp folders like TH14FF~1, THE3E9~1, etc.
                      if (subName.StartsWith("TH", StringComparison.OrdinalIgnoreCase) && subName.Contains("~"))
                          continue;
-@@ -258,6 +266,47 @@ namespace SimPe
-                 rootFolder: root,
-                 packs: new ReadOnlyCollection<PackFolderInfo>(packs));
+@@ -305,6 +313,47 @@ namespace SimPe
+             }
+             return false;
          }
 +
 +        /// <summary>
@@ -97,7 +97,7 @@ index 474bfab..d9e776f 100644
  }
  
 diff --git a/SimPE.Helper/Helper.cs b/SimPE.Helper/Helper.cs
-index 001f0da..8d45bc3 100644
+index 5ff8a56..a798310 100644
 --- a/SimPE.Helper/Helper.cs
 +++ b/SimPE.Helper/Helper.cs
 @@ -22,6 +22,7 @@
@@ -193,7 +193,7 @@ index 6e43d03..64165ae 100644
              this.rbMac.CheckedChanged += new System.EventHandler(this.EditionRadio_CheckedChanged);
              // 
 diff --git a/SimPE.Main/GameRootDialog.cs b/SimPE.Main/GameRootDialog.cs
-index 1b8f017..8eb41d9 100644
+index b1bd939..fc102eb 100644
 --- a/SimPE.Main/GameRootDialog.cs
 +++ b/SimPE.Main/GameRootDialog.cs
 @@ -61,12 +61,13 @@ namespace SimPe
@@ -346,7 +346,7 @@ index 1b8f017..8eb41d9 100644
                      "Edition Required",
                      MessageBoxButtons.OK,
                      MessageBoxIcon.Warning);
-@@ -512,12 +546,19 @@ namespace SimPe
+@@ -517,12 +551,19 @@ namespace SimPe
                  // Custom: leave it blank so the user *must* choose
                  suggested = string.Empty;
              }
@@ -372,7 +372,7 @@ index 1b8f017..8eb41d9 100644
  
              if (suggested != null)
              {
-@@ -551,6 +592,50 @@ namespace SimPe
+@@ -556,6 +597,50 @@ namespace SimPe
                  // Custom: leave blank so user must choose if needed
                  suggested = string.Empty;
              }
