@@ -78,6 +78,27 @@ rm -f  "$SIMPE_DATA/Data/Packs.cfg" "$SIMPE_DATA/Data/Packs.cfg.bak" "$SIMPE_DAT
 rm -f  "$SIMPE_DATA/Data"/*.xreg
 rm -f  "$SIMPE_DATA/Data"/objcache*.simpepkg
 
+# Wine's winemac driver recreates user-profile folder redirections (Desktop,
+# Documents, Downloads, Music, Pictures, Videos, Templates, ...) as symlinks
+# into the developer's real Mac home on every launch. They point OUTSIDE the
+# .app, so `codesign --verify --deep` rejects the bundle with "invalid
+# destination for symbolic link in bundle" (and reports the sealed symlinks as
+# "file modified"). Strip every symlink in the prefix whose absolute target
+# escapes the bundle; Wine recreates the ones it needs, pointing at the end
+# user's home, on their first launch.
+echo "==> Removing external symlinks from the Wine prefix"
+PREFIX_DIR="$APP/Contents/SharedSupport/prefix"
+if [ -d "$PREFIX_DIR" ]; then
+  find "$PREFIX_DIR" -type l -print0 2>/dev/null | while IFS= read -r -d '' l; do
+    tgt="$(readlink "$l")"
+    case "$tgt" in
+      "$APP"/*) : ;;                       # absolute, internal — keep
+      /*) echo "    rm: $l -> $tgt"; rm -f "$l" ;;  # absolute, external — drop
+      *)  : ;;                             # relative — keep
+    esac
+  done
+fi
+
 # `dotnet publish -r win-x64` on macOS accidentally creates a native macOS
 # apphost (extension-less Mach-O) next to each Windows .exe. These are unsigned
 # and live inside the Wine prefix where no Mach-O should exist; notarization
