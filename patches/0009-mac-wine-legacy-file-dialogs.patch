@@ -33,27 +33,6 @@ index f560c79..33485e6 100644
              this.btnCommit = new System.Windows.Forms.Button();
              this.panel3.SuspendLayout();
              this.wrapperPanel.SuspendLayout();
-diff --git a/SimPE.AltSurgery/Surgery.cs b/SimPE.AltSurgery/Surgery.cs
-index b1f1924..7e59ec8 100644
---- a/SimPE.AltSurgery/Surgery.cs
-+++ b/SimPE.AltSurgery/Surgery.cs
-@@ -114,14 +114,14 @@ namespace SimPe.Plugin
- 			this.llusearche = new System.Windows.Forms.LinkLabel();
- 			this.pbarche = new System.Windows.Forms.PictureBox();
- 			this.label3 = new System.Windows.Forms.Label();
--			this.sfd = new System.Windows.Forms.SaveFileDialog();
-+			this.sfd = new System.Windows.Forms.SaveFileDialog() { AutoUpgradeEnabled = false };
- 			this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
- 			this.cbskin = new System.Windows.Forms.CheckBox();
- 			this.groupBox3 = new System.Windows.Forms.GroupBox();
- 			this.lvskin = new System.Windows.Forms.ListView();
- 			this.iskin = new System.Windows.Forms.ImageList(this.components);
- 			this.ctlLoadPackage = new System.Windows.Forms.LinkLabel();
--			this.opd = new System.Windows.Forms.OpenFileDialog();
-+			this.opd = new System.Windows.Forms.OpenFileDialog() { AutoUpgradeEnabled = false };
- 			this.groupBox1.SuspendLayout();
- 			this.groupBox2.SuspendLayout();
- 			this.groupBox3.SuspendLayout();
 diff --git a/SimPE.Downloads/LoadSims2PackTool.cs b/SimPE.Downloads/LoadSims2PackTool.cs
 index 523659a..5f14fc3 100644
 --- a/SimPE.Downloads/LoadSims2PackTool.cs
@@ -202,45 +181,6 @@ index 6b27c19..03e3687 100644
  			ofd.Filter = "Images (*.bmp;*.png;*.jpg;*.gif;*.wmf)|*.bmp;*.png;*.jpg;*.gif;*.wmf";
  			ofd.Multiselect = true;
  			if (ofd.ShowDialog()==DialogResult.OK) 
-diff --git a/SimPE.Main/ActionExtract.cs b/SimPE.Main/ActionExtract.cs
-index 571960d..56f2363 100644
---- a/SimPE.Main/ActionExtract.cs
-+++ b/SimPE.Main/ActionExtract.cs
-@@ -45,7 +45,7 @@ namespace SimPe.Actions.Default
- 			name = name.Replace(" ", "").Replace(":", "_").Replace(@"\", "_");
- 			if (!multi) 
- 			{
--				System.Windows.Forms.SaveFileDialog sfd = new System.Windows.Forms.SaveFileDialog();
-+				System.Windows.Forms.SaveFileDialog sfd = new System.Windows.Forms.SaveFileDialog() { AutoUpgradeEnabled = false };
- 				sfd.FileName = name;
- 				sfd.Filter =  ExtensionProvider.BuildFilterString(
- 					new SimPe.ExtensionType[] {
-diff --git a/SimPE.Main/ActionReplace.cs b/SimPE.Main/ActionReplace.cs
-index 54b425b..3a9cef5 100644
---- a/SimPE.Main/ActionReplace.cs
-+++ b/SimPE.Main/ActionReplace.cs
-@@ -43,7 +43,7 @@ namespace SimPe.Actions.Default
- 		/// <returns></returns>
- 		protected SimPe.Collections.PackedFileDescriptors LoadDescriptors(bool add) 
- 		{
--			System.Windows.Forms.OpenFileDialog ofd = new System.Windows.Forms.OpenFileDialog();
-+			System.Windows.Forms.OpenFileDialog ofd = new System.Windows.Forms.OpenFileDialog() { AutoUpgradeEnabled = false };
- 			if (!add) 
- 			{
- 				ofd.Filter =  ExtensionProvider.BuildFilterString(
-diff --git a/SimPE.Main/AddExtTool.cs b/SimPE.Main/AddExtTool.cs
-index 8040309..bf95907 100644
---- a/SimPE.Main/AddExtTool.cs
-+++ b/SimPE.Main/AddExtTool.cs
-@@ -99,7 +99,7 @@ namespace SimPe
- 			this.tbfile = new System.Windows.Forms.TextBox();
- 			this.tbattr = new System.Windows.Forms.TextBox();
- 			this.button2 = new System.Windows.Forms.Button();
--			this.ofd = new System.Windows.Forms.OpenFileDialog();
-+			this.ofd = new System.Windows.Forms.OpenFileDialog() { AutoUpgradeEnabled = false };
- 			this.tbtype = new System.Windows.Forms.TextBox();
- 			this.cbtypes = new System.Windows.Forms.ComboBox();
- 			this.SuspendLayout();
 diff --git a/SimPE.Main/CustomFileTableItemDialog.cs b/SimPE.Main/CustomFileTableItemDialog.cs
 index 6a1bec7..906393c 100644
 --- a/SimPE.Main/CustomFileTableItemDialog.cs
@@ -268,12 +208,12 @@ index 6d3e401..a3161a4 100644
              this.SuspendLayout();
              // 
 diff --git a/SimPE.Main/Main.Designer.cs b/SimPE.Main/Main.Designer.cs
-index 2eb1836..6e8ccec 100644
+index af27c81..e6f9e8c 100644
 --- a/SimPE.Main/Main.Designer.cs
 +++ b/SimPE.Main/Main.Designer.cs
 @@ -176,7 +176,7 @@ namespace SimPe
-             this.tbWindow = new System.Windows.Forms.ToolStrip();
-             this.tbAction = new System.Windows.Forms.ToolStrip();
+             this.tbWindow = new Ambertation.Windows.Forms.ClickThroughToolStrip();
+             this.tbAction = new Ambertation.Windows.Forms.ClickThroughToolStrip();
              this.dockCenter = new Ambertation.Windows.Forms.DockContainer();
 -            this.ofd = new System.Windows.Forms.OpenFileDialog();
 +            this.ofd = new System.Windows.Forms.OpenFileDialog() { AutoUpgradeEnabled = false };
@@ -302,19 +242,6 @@ index 56f7bf8..287dcca 100644
              this.tbep1 = new System.Windows.Forms.TextBox();
              this.button5 = new System.Windows.Forms.Button();
              this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-diff --git a/SimPE.PluginDockBox/Report.cs b/SimPE.PluginDockBox/Report.cs
-index 81c5c88..71ff8c2 100644
---- a/SimPE.PluginDockBox/Report.cs
-+++ b/SimPE.PluginDockBox/Report.cs
-@@ -91,7 +91,7 @@ namespace SimPe.Plugin.Tool
-             this.xpGradientPanel1 = new System.Windows.Forms.Panel();
-             this.button1 = new System.Windows.Forms.Button();
-             this.rtb = new System.Windows.Forms.RichTextBox();
--            this.sfd = new System.Windows.Forms.SaveFileDialog();
-+            this.sfd = new System.Windows.Forms.SaveFileDialog() { AutoUpgradeEnabled = false };
-             this.xpGradientPanel1.SuspendLayout();
-             this.SuspendLayout();
-             // 
 diff --git a/SimPE.RCOL/DDSTool.cs b/SimPE.RCOL/DDSTool.cs
 index 890b917..321331f 100644
 --- a/SimPE.RCOL/DDSTool.cs
@@ -374,10 +301,10 @@ index 378b911..c24146b 100644
              this.panel1.SuspendLayout();
              ((System.ComponentModel.ISupportInitialize)(this.pb)).BeginInit();
 diff --git a/SimPE.ToolBoxWorkshops/OWDockForm.cs b/SimPE.ToolBoxWorkshops/OWDockForm.cs
-index d45ba44..b9a3b26 100644
+index 41e00f4..2dd28c1 100644
 --- a/SimPE.ToolBoxWorkshops/OWDockForm.cs
 +++ b/SimPE.ToolBoxWorkshops/OWDockForm.cs
-@@ -171,7 +171,7 @@ namespace SimPe.Plugin.Tool.Dockable
+@@ -179,7 +179,7 @@ namespace SimPe.Plugin.Tool.Dockable
              this.biAbort = new System.Windows.Forms.ToolStripButton();
              this.biCatalog = new System.Windows.Forms.ToolStripButton();
  			this.ilist = new System.Windows.Forms.ImageList(this.components);
@@ -386,7 +313,7 @@ index d45ba44..b9a3b26 100644
  			this.rightSandDock.SuspendLayout();
  			this.dcObjectWorkshop.SuspendLayout();
  			this.xpGradientPanel1.SuspendLayout();
-@@ -919,7 +919,7 @@ namespace SimPe.Plugin.Tool.Dockable
+@@ -927,7 +927,7 @@ namespace SimPe.Plugin.Tool.Dockable
  
  		private void button2_Click(object sender, System.EventArgs e)
  		{
@@ -427,7 +354,7 @@ index 3fbd87f..0e6fc68 100644
                          new SimPe.ExtensionType[] {
  													  SimPe.ExtensionType.Package,
 diff --git a/SimPE.ToolBoxWorkshops/ObjectsDock.cs b/SimPE.ToolBoxWorkshops/ObjectsDock.cs
-index 0949894..81b99be 100644
+index 6150e39..bea5658 100644
 --- a/SimPE.ToolBoxWorkshops/ObjectsDock.cs
 +++ b/SimPE.ToolBoxWorkshops/ObjectsDock.cs
 @@ -1011,7 +1011,7 @@ namespace SimPe.Plugin.Tool.Dockable
@@ -505,19 +432,6 @@ index 40c6b21..e13ad3c 100644
              this.panel1 = new System.Windows.Forms.Panel();
              this.taskBox2 = new System.Windows.Forms.Panel();
              this.taskBox1 = new System.Windows.Forms.Panel();
-diff --git a/SimPE.Toolbox/Surgery.cs b/SimPE.Toolbox/Surgery.cs
-index 02de145..d6b3ed7 100644
---- a/SimPE.Toolbox/Surgery.cs
-+++ b/SimPE.Toolbox/Surgery.cs
-@@ -116,7 +116,7 @@ namespace SimPe.Plugin
-             this.llusearche = new System.Windows.Forms.LinkLabel();
-             this.pbarche = new System.Windows.Forms.PictureBox();
-             this.label3 = new System.Windows.Forms.Label();
--            this.sfd = new System.Windows.Forms.SaveFileDialog();
-+            this.sfd = new System.Windows.Forms.SaveFileDialog() { AutoUpgradeEnabled = false };
-             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-             this.cbskin = new System.Windows.Forms.CheckBox();
-             this.groupBox3 = new System.Windows.Forms.GroupBox();
 diff --git a/SimPE.ToolboxScanner/ScannerForm.cs b/SimPE.ToolboxScanner/ScannerForm.cs
 index 17ee530..97cc75a 100644
 --- a/SimPE.ToolboxScanner/ScannerForm.cs
@@ -544,6 +458,19 @@ index 6097726..ba8076a 100644
              this.tabControl1.SuspendLayout();
              this.tabPage2.SuspendLayout();
              this.pnep.SuspendLayout();
+diff --git a/SimPe SMD ImporterExporter/BonesWeightOptions.cs b/SimPe SMD ImporterExporter/BonesWeightOptions.cs
+index f858941..9fb8890 100644
+--- a/SimPe SMD ImporterExporter/BonesWeightOptions.cs	
++++ b/SimPe SMD ImporterExporter/BonesWeightOptions.cs	
+@@ -170,7 +170,7 @@ public class BonesWeightOptions : Form
+ 		this.sksmdRB2 = new System.Windows.Forms.RadioButton();
+ 		this.sksmdRB3 = new System.Windows.Forms.RadioButton();
+ 		this.sksmdlabel1 = new System.Windows.Forms.Label();
+-		this.sksmdOFDialog = new System.Windows.Forms.OpenFileDialog();
++		this.sksmdOFDialog = new System.Windows.Forms.OpenFileDialog() { AutoUpgradeEnabled = false };
+ 		this.cbbump = new System.Windows.Forms.CheckBox();
+ 		this.panel1 = new System.Windows.Forms.Panel();
+ 		this.cbmorph2 = new System.Windows.Forms.CheckBox();
 diff --git a/Wizards of SimPe/Option.cs b/Wizards of SimPe/Option.cs
 index e340e0a..ae02dd6 100644
 --- a/Wizards of SimPe/Option.cs	
@@ -584,10 +511,10 @@ index 9a1b4a2..cb3528b 100644
              ofd.CheckFileExists = true;
              ofd.CheckPathExists = true;
 diff --git a/_PJSE/pjse Coder/BhavForm.cs b/_PJSE/pjse Coder/BhavForm.cs
-index 8dcd1d9..00e3a40 100644
+index 9ee0fb8..bf8c0e1 100644
 --- a/_PJSE/pjse Coder/BhavForm.cs	
 +++ b/_PJSE/pjse Coder/BhavForm.cs	
-@@ -2591,9 +2591,9 @@ namespace SimPe.PackedFiles.UserInterface
+@@ -2627,9 +2627,9 @@ namespace SimPe.PackedFiles.UserInterface
              bool load = sender.Equals(this.fromFileToolStripMenuItem);
              FileDialog fd;
              if (load)

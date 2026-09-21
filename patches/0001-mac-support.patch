@@ -179,19 +179,6 @@ index 5ff8a56..a798310 100644
  			}
  		}
  
-diff --git a/SimPE.Main/GameRootDialog.Designer.cs b/SimPE.Main/GameRootDialog.Designer.cs
-index 6e43d03..64165ae 100644
---- a/SimPE.Main/GameRootDialog.Designer.cs
-+++ b/SimPE.Main/GameRootDialog.Designer.cs
-@@ -142,7 +142,7 @@
-             this.rbMac.Size = new System.Drawing.Size(222, 29);
-             this.rbMac.TabIndex = 6;
-             this.rbMac.TabStop = true;
--            this.rbMac.Text = "Mac (coming soon)";
-+            this.rbMac.Text = "Mac";
-             this.rbMac.UseVisualStyleBackColor = true;
-             this.rbMac.CheckedChanged += new System.EventHandler(this.EditionRadio_CheckedChanged);
-             // 
 diff --git a/SimPE.Main/GameRootDialog.cs b/SimPE.Main/GameRootDialog.cs
 index b1bd939..fc102eb 100644
 --- a/SimPE.Main/GameRootDialog.cs
