@@ -12,7 +12,7 @@ The released SimPE for Mac was built with:
 | Wrapper tool | **Sikarugir Creator 1.0.1** (<https://github.com/Sikarugir-App/Creator>) |
 | Wrapper template | Sikarugir **Template-1.0.11** |
 | Wine engine | **WS12WineSikarugir10.0_6** = Wine 10.0, Sikarugir revision 6 |
-| Trimmed | about 290 MB of unused parts removed (`trim-wrapper.sh`); from the next release also Wine Mono (230 MB) |
+| Trimmed | about 290 MB of unused parts removed (`trim-wrapper.sh`); from the next release also Wine Mono and Wine Gecko (440 MB) |
 | Icon | SimPE's own, `wrapper/SimPE.icns` |
 
 ## The quick way: reuse the released app
@@ -39,17 +39,17 @@ SimPE settings (game folder, layout, toolbar).
    `/Applications` (the scripts default to that path). Creating the wrapper also
    creates its Wine prefix in `Contents/SharedSupport/prefix/`; the template
    already has the `Contents/drive_c` shortcut into it that `deploy.sh` uses.
-4. **Trim it.** A stock wrapper carries about 520 MB that SimPE never uses:
-   3D-graphics translators, Vulkan, audio/video playback, and Wine Mono (Wine's
-   stand-in for the old Windows .NET Framework; SimPE brings its own .NET 8).
-   Remove them:
+4. **Trim it.** A stock wrapper carries about 730 MB that SimPE never uses:
+   3D-graphics translators, Vulkan, audio/video playback, Wine Mono (Wine's
+   stand-in for the old Windows .NET Framework; SimPE brings its own .NET 8)
+   and Wine Gecko (Wine's web-page engine; SimPE's About and Welcome windows
+   show plain rich text). Remove them:
    ```sh
    ./trim-wrapper.sh /Applications/SimPE.app
    ```
-   It also sets the wrapper's **Skip Mono** option so Wine won't reinstall Mono.
-   It keeps **Wine Gecko**, which draws SimPE's About, Welcome and Tutorials
-   windows. (Releases up to 0.8.4.4 still contain Mono; everything else matches
-   them exactly.)
+   It also sets the wrapper's **Skip Mono** and **Skip Gecko** options so Wine
+   won't reinstall them. (Releases up to 0.8.4.4 still contain Mono and Gecko;
+   everything else matches them exactly.)
 5. **Give it SimPE's icon:**
    ```sh
    cp wrapper/SimPE.icns /Applications/SimPE.app/Contents/Resources/Configure.icns
@@ -67,7 +67,7 @@ SimPE settings (game folder, layout, toolbar).
    - **Program to run:** `C:\Program Files\SimPE\SimPE.Main.exe`
      (stored in `Contents/Info.plist` as `Program Name and Path`).
    - Leave the graphics options (DXVK, D3DMetal, DXMT…) **off**, and leave
-     **Skip Mono** on. Their files were removed in step 4.
+     **Skip Mono** and **Skip Gecko** on. Their files were removed in step 4.
 8. Keyboard and screen settings in the Wine registry. The released app has these;
    set them with `regedit` from Configure.app, or add them to
    `Contents/SharedSupport/prefix/user.reg`:

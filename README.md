@@ -29,7 +29,7 @@ unchanged and adds a few Mac-specific changes on top:
 | `patches/` | The Mac changes, as numbered patch files (Wine workarounds, Mac game paths…). `patches/apply.sh` applies them; see `patches/README.md`. They are kept as patches, never committed inside the submodule. |
 | `build-simpe.sh` | Applies the patches and builds SimPE as a self-contained Windows program (the .NET 8 runtime is included, so Wine needs nothing extra installed). |
 | `deploy.sh` | Copies that build into a Wine wrapper app, keeping your SimPE settings. |
-| `trim-wrapper.sh` | Removes the ~520 MB a stock Sikarugir wrapper carries that SimPE never uses (3D translators, Vulkan, audio/video, Wine Mono). Keeps Wine Gecko, which SimPE's About/Welcome windows need. |
+| `trim-wrapper.sh` | Removes the ~730 MB a stock Sikarugir wrapper carries that SimPE never uses (3D translators, Vulkan, audio/video, Wine Mono, Wine Gecko). |
 | `wrapper/SimPE.icns` | The app icon. |
 | `sign-and-notarize.sh` | Signs the wrapper with a Developer ID, notarizes it, and makes the release `.dmg`. |
 | `BUILD-WRAPPER.md` | How to make the Wine wrapper itself. **Read this before building.** |
@@ -79,7 +79,7 @@ git add vendor/simpe-fixed && git commit -m "Bump vendor to <sha> — SimPE-Fixe
 ## Making a release
 
 Before signing, run `./trim-wrapper.sh` on the app (safe to repeat; the first
-time after 0.8.4.4 it removes Wine Mono). Then use that build for a while before
+time after 0.8.4.4 it removes Wine Mono and Wine Gecko). Then use that build for a while before
 publishing.
 
 `sign-and-notarize.sh` needs a *Developer ID Application* certificate in your
