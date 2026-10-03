@@ -1,14 +1,22 @@
 #!/bin/bash
 set -euo pipefail
 
-# Remove the parts of a stock Sikarugir wrapper that SimPE never uses, the
-# same ~293 MB that was removed from the wrapper behind every SimPE for Mac
-# release. SimPE is a plain WinForms program: it needs no 3D translation
-# layers, no Vulkan, and no audio/video playback.
+# Remove the parts of a stock Sikarugir wrapper that SimPE never uses: the
+# ~293 MB that was removed from the wrapper behind every SimPE for Mac release
+# up to 0.8.4.4, plus Wine Mono (~230 MB, removed from 2026-10-03 on).
+# SimPE is a plain WinForms program on its own bundled .NET 8: it needs no 3D
+# translation layers, no Vulkan, no audio/video playback, and not Wine Mono
+# (Wine's stand-in for the old Windows .NET Framework).
+#
+# Wine Gecko is deliberately KEPT: SimPE's About, Welcome and Tutorials
+# windows use a web-page view (System.Windows.Forms.WebBrowser), which Wine
+# draws with Gecko.
 #
 # The list below was worked out on 2026-10-03 by comparing the released
 # SimPE.app with a stock Sikarugir Template-1.0.11 + WS12WineSikarugir10.0_6
-# wrapper; these are exactly the files the release lacks. Safe to re-run.
+# wrapper; these are exactly the files the release lacks. Mono was tested on
+# 2026-10-03 (start-up, Object Workshop catalogue, About window). Safe to
+# re-run.
 #
 # Usage:
 #   ./trim-wrapper.sh                      # defaults to /Applications/SimPE.app
@@ -44,6 +52,14 @@ remove "$C/Frameworks/libMoltenVK.dylib"
 remove "$C/Frameworks/moltenvkcx"
 # Settings helper for extra custom launchers.
 remove "$C/Configure.app/Contents/Resources/CustomEXE.app"
+# Wine Mono, and tell the wrapper not to (re)install it.
+remove "$C/SharedSupport/wine/share/wine/mono"
+if /usr/libexec/PlistBuddy -c 'Print :"Skip Mono"' "$C/Info.plist" >/dev/null 2>&1; then
+  /usr/libexec/PlistBuddy -c 'Set :"Skip Mono" 1' "$C/Info.plist"
+else
+  /usr/libexec/PlistBuddy -c 'Add :"Skip Mono" integer 1' "$C/Info.plist"
+fi
+echo "  set Skip Mono = 1 in Info.plist"
 
 after=$(du -sm "$APP" | cut -f1)
 echo "Done: ${before} MB -> ${after} MB"
