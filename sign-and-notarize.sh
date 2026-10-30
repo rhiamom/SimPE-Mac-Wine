@@ -73,7 +73,7 @@ echo "==> Cleaning Wine dosdevices and SimPE runtime state"
 DOSDEVICES="$APP/Contents/SharedSupport/prefix/dosdevices"
 SIMPE_DATA="$APP/Contents/SharedSupport/prefix/drive_c/Program Files/SimPE"
 rm -rf "$DOSDEVICES"
-rm -f  "$SIMPE_DATA/pluginlog.txt"
+rm -f  "$SIMPE_DATA/pluginlog.txt" "$SIMPE_DATA/Data/pluginlog.txt"
 rm -f  "$SIMPE_DATA/Data/Packs.cfg" "$SIMPE_DATA/Data/Packs.cfg.bak" "$SIMPE_DATA/Data/GameRoot.cfg"
 rm -f  "$SIMPE_DATA/Data"/*.xreg
 rm -f  "$SIMPE_DATA/Data"/objcache*.simpepkg
