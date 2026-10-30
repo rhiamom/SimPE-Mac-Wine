@@ -34,11 +34,15 @@ cd "$SUBMODULE_DIR"
 # of the above via Directory.Build.targets' SimPeCopyToUnifiedBin target.
 dotnet build "$SLN" -c Release --graph -p:EnableWindowsTargeting=true
 
-# Step 2: Stash the artifacts publish would otherwise miss.
+# Step 2: Stash the whole unified bin/Release, not just Plugins/ and Data/.
+# Many plugin DLLs must ALSO sit at the top level next to SimPE.Main.exe
+# (the Windows and Linux releases ship 58 of them in both places), and the
+# Collection Creator reads its images from a data/ folder next to whichever
+# copy of its DLL was loaded. Overlaying only Plugins/ left 29 plugins
+# without their top-level copy in every Mac release up to 0.8.4.10.
 STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGE_DIR"' EXIT
-[ -d "$SUBMODULE_DIR/bin/Release/Plugins" ] && cp -R "$SUBMODULE_DIR/bin/Release/Plugins" "$STAGE_DIR/Plugins"
-[ -d "$SUBMODULE_DIR/bin/Release/Data" ]    && cp -R "$SUBMODULE_DIR/bin/Release/Data"    "$STAGE_DIR/Data"
+cp -R "$SUBMODULE_DIR/bin/Release" "$STAGE_DIR/Release"
 
 # Step 3: Clean before publish to avoid NETSDK1152 (the build above leaves
 # non-RID outputs that collide with the publish step's RID-specific outputs).
@@ -79,12 +83,26 @@ dotnet publish "$WIZARDS_PROJ" \
 WIZARDS_PUBLISH_DIR="$SUBMODULE_DIR/Wizards of SimPe/bin/Release/win-x64/publish"
 cp -R "$WIZARDS_PUBLISH_DIR"/. "$PUBLISH_DIR"/
 
-# Step 5: Overlay plugins and data into the publish output.
-[ -d "$STAGE_DIR/Plugins" ] && cp -R "$STAGE_DIR/Plugins" "$PUBLISH_DIR/"
-[ -d "$STAGE_DIR/Data" ]    && cp -R "$STAGE_DIR/Data"    "$PUBLISH_DIR/"
+# Step 5: Overlay the stashed bin/Release into the publish output. Files the
+# publish already has are kept: its SimPE.Main.* and "Wizards of SimPe".*
+# (self-contained apphost, runtimeconfig with includedFrameworks, deps)
+# must win over bin/Release's framework-dependent ones. Building on the Mac
+# also leaves native macOS files in bin/Release (an extension-less
+# "Wizards of SimPe" apphost and runtimes/*/native/libglfw*); Wine never
+# uses them, and unsigned Mach-O files would break notarization.
+rsync -a --ignore-existing \
+  --exclude '/runtimes/' --exclude '/Wizards of SimPe' --exclude '/SimPE.Main' \
+  "$STAGE_DIR/Release"/ "$PUBLISH_DIR"/
+# The same macOS apphosts can also arrive through the publish steps.
+rm -f "$PUBLISH_DIR/Wizards of SimPe" "$PUBLISH_DIR/SimPE.Main"
+if [ -d "$PUBLISH_DIR/Plugins/data/Images" ]; then
+  mkdir -p "$PUBLISH_DIR/Data/Images"
+  cp "$PUBLISH_DIR/Plugins/data/Images"/* "$PUBLISH_DIR/Data/Images"/
+fi
 
 echo
 echo "Publish output: $PUBLISH_DIR"
 echo "Main binary:    $PUBLISH_DIR/SimPE.Main.exe"
 echo "Plugins:        $(ls "$PUBLISH_DIR/Plugins" 2>/dev/null | wc -l | tr -d ' ') items"
+echo "Also top-level: $(cd "$PUBLISH_DIR/Plugins" && for f in *.dll; do [ -e "../$f" ] && echo; done | wc -l | tr -d ' ') plugin DLLs"
 echo "Data files:     $(ls "$PUBLISH_DIR/Data" 2>/dev/null | wc -l | tr -d ' ') files"
